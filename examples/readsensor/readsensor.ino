@@ -59,7 +59,7 @@ void loop() {
     for (int i = 0; i < data.celsiusHundredths/100; i++) {
         pulse(led1); 
     }
-    for (int i = 0; i < data.humidityPercent; i++) {
+    for (int i = 0; i < data.humidityBasisPoints; i++) {
         pulse(led2); 
     }
     delay(5000);
