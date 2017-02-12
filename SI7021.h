@@ -16,7 +16,6 @@ This program is licensed under the GNU GPL v2
  #include "TinyWireM.h"
  #define Wire TinyWireM
 #else
- #include <avr/pgmspace.h>
  #include <Wire.h>
 #endif
 
@@ -24,13 +23,18 @@ typedef struct si7021_env {
     int celsiusHundredths;
     int fahrenheitHundredths;
     unsigned int humidityBasisPoints;
+    unsigned int humidityPercent;
 } si7021_env;
 
 class SI7021
 {
   public:
     SI7021();
-    bool begin();
+#ifdef ARDUINO_ARCH_ESP8266
+    bool begin(int sda, int scl);
+#else
+	bool begin();
+#endif
     bool sensorExists();
     int getFahrenheitHundredths();
     int getCelsiusHundredths();
@@ -41,7 +45,7 @@ class SI7021
     int getDeviceId();
     void setHeater(bool on);
   private:
-    void _command(byte * cmd, byte * buf );
+    void _command(byte * cmd, byte cmdsize, byte * buf, byte bufsize );
     void _writeReg(byte * reg, int reglen);
     int _readReg(byte * reg, int reglen);
     int _getCelsiusPostHumidity();

@@ -19,23 +19,23 @@ void loop() {
     int temperature = sensor.getCelsiusHundredths();
     temperature = temperature / 100;
     for (int i = 0; i < temperature; i++) {
-        pulse(led1); 
+        pulse(led1);
     }
-    
+
     delay(5000);
-    
+
     // humidity is an integer representing percent
     int humidity = sensor.getHumidityPercent();
     for (int i = 0; i < humidity; i++) {
-        pulse(led2); 
+        pulse(led2);
     }
-    
+
     delay(5000);
-    
+
     // this driver should work for SI7020 and SI7021, this returns 20 or 21
     int deviceid = sensor.getDeviceId();
     for (int i = 0; i < deviceid; i++) {
-        pulse(led1); 
+        pulse(led1);
     }
     delay(5000);
 
@@ -43,24 +43,24 @@ void loop() {
     sensor.setHeater(true);
     delay(20000);
     sensor.setHeater(false);
-    
+
     // see if heater changed temperature
-    int temperature = sensor.getCelsiusHundredths();
+    temperature = sensor.getCelsiusHundredths();
     temperature = temperature / 100;
     for (int i = 0; i < temperature; i++) {
-        pulse(led2); 
+        pulse(led2);
     }
-    
+
     //cool down
     delay(20000);
 
     // get humidity and temperature in one shot, saves power because sensor takes temperature when doing humidity anyway
     si7021_env data = sensor.getHumidityAndTemperature();
     for (int i = 0; i < data.celsiusHundredths/100; i++) {
-        pulse(led1); 
+        pulse(led1);
     }
-    for (int i = 0; i < data.humidityPercent; i++) {
-        pulse(led2); 
+    for (unsigned int i = 0; i < data.humidityPercent; i++) {
+        pulse(led2);
     }
     delay(5000);
 }

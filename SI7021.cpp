@@ -24,8 +24,13 @@ bool _si_exists = false;
 SI7021::SI7021() {
 }
 
+#ifdef ARDUINO_ARCH_ESP8266
+bool SI7021::begin(int sda, int scl) {
+    Wire.begin(sda, scl);
+#else
 bool SI7021::begin() {
     Wire.begin();
+#endif
     Wire.beginTransmission(I2C_ADDR);
     if (Wire.endTransmission() == 0) {
         _si_exists = true;
@@ -44,14 +49,14 @@ int SI7021::getFahrenheitHundredths() {
 
 int SI7021::getCelsiusHundredths() {
     byte tempbytes[2];
-    _command(TEMP_READ, tempbytes);
+    _command(TEMP_READ, 1, tempbytes, 2);
     long tempraw = (long)tempbytes[0] << 8 | tempbytes[1];
     return ((17572 * tempraw) >> 16) - 4685;
 }
 
 int SI7021::_getCelsiusPostHumidity() {
     byte tempbytes[2];
-    _command(POST_RH_TEMP_READ, tempbytes);
+    _command(POST_RH_TEMP_READ, 1, tempbytes, 2);
     long tempraw = (long)tempbytes[0] << 8 | tempbytes[1];
     return ((17572 * tempraw) >> 16) - 4685;
 }
@@ -59,28 +64,29 @@ int SI7021::_getCelsiusPostHumidity() {
 
 unsigned int SI7021::getHumidityPercent() {
     byte humbytes[2];
-    _command(RH_READ, humbytes);
+    _command(RH_READ, 1, humbytes, 2);
     long humraw = (long)humbytes[0] << 8 | humbytes[1];
     return ((125 * humraw) >> 16) - 6;
 }
 
 unsigned int SI7021::getHumidityBasisPoints() {
     byte humbytes[2];
-    _command(RH_READ, humbytes);
+    _command(RH_READ, 1, humbytes, 2);
     long humraw = (long)humbytes[0] << 8 | humbytes[1];
     return ((12500 * humraw) >> 16) - 600;
 }
 
-void SI7021::_command(byte * cmd, byte * buf ) {
-    _writeReg(cmd, sizeof cmd);
-    _readReg(buf, sizeof buf);
+void SI7021::_command(byte * cmd, byte cmdsize, byte * buf, byte bufsize ) {
+    _writeReg(cmd, cmdsize);
+    delay(50);		// Allow sensor to prepare data, ESP8266 is too fast ;)
+    _readReg(buf, bufsize);
 }
 
 void SI7021::_writeReg(byte * reg, int reglen) {
     Wire.beginTransmission(I2C_ADDR);
     for(int i = 0; i < reglen; i++) {
         reg += i;
-        Wire.write(*reg); 
+        Wire.write(*reg);
     }
     Wire.endTransmission();
 }
@@ -89,8 +95,8 @@ int SI7021::_readReg(byte * reg, int reglen) {
     Wire.requestFrom(I2C_ADDR, reglen);
     while(Wire.available() < reglen) {
     }
-    for(int i = 0; i < reglen; i++) { 
-        reg[i] = Wire.read(); 
+    for(int i = 0; i < reglen; i++) {
+        reg[i] = Wire.read();
     }
     return 1;
 }
@@ -99,10 +105,10 @@ int SI7021::_readReg(byte * reg, int reglen) {
 int SI7021::getSerialBytes(byte * buf) {
     _writeReg(SERIAL1_READ, sizeof SERIAL1_READ);
     _readReg(buf, 6);
- 
+
     _writeReg(SERIAL2_READ, sizeof SERIAL2_READ);
     _readReg(buf + 6, 6);
-    
+
     // could verify crc here and return only the 8 bytes that matter
     return 1;
 }
@@ -127,8 +133,9 @@ void SI7021::setHeater(bool on) {
 
 // get humidity, then get temperature reading from humidity measurement
 struct si7021_env SI7021::getHumidityAndTemperature() {
-    si7021_env ret = {0, 0, 0};
+    si7021_env ret = {0, 0, 0, 0};
     ret.humidityBasisPoints      = getHumidityBasisPoints();
+    ret.humidityPercent          = getHumidityPercent();
     ret.celsiusHundredths        = _getCelsiusPostHumidity();
     ret.fahrenheitHundredths     = (1.8 * ret.celsiusHundredths) + 3200;
     return ret;
